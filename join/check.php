@@ -1,84 +1,73 @@
 <?php
 session_start();
-require('dbconnect.php');
+require('../dbconnect.php');
 
-if (isset($_SESSION['id']) && $_SESSION['time'] + 3600 > time()) {
-    //ログインしている
-    $_SESSION['time'] = time();
-
-    $members = $db->prepare('SELECT * FROM members WHERE id=?');
-    $members->execute(array($_SESSION['id']));
-    $member = $members->fetch();
-} else {
-    //ログインしていない
-    header('Location: login.php');
+if (!isset($_SESSION['join'])) {
+    header('Location: index.php');
+    exit();
+}
+if (!empty($_POST)) {
+    //登録処理をする
+    $statement = $db->prepare('INSERT INTO members SET name=?, email=?, password=?, picture=?, created=NOW()');
+    echo $ret = $statement->execute(array(
+    $_SESSION['join']['name'],
+    $_SESSION['join']['email'],
+    sha1($_SESSION['join']['password']),
+    $_SESSION['join']['image']
+));
+    unset($_SESSION['join']);
+    header('Location: thanks.php');
     exit();
 }
 
-//投稿を記録する
-if (!empty($_POST)) {
-    if ($_POST['message'] != '') {
-        $message = $db->prepare('INSERT INTO posts SET member_id=?, message=?, created=NOW()');
-        $message->execute(array($member['id'],$_POST['message']));
-
-        header('Location: index.php');
-        exit();
-    }
+//htmlspecialcharsのショートカット
+function h($value)
+{
+    return htmlspecialchars($value, ENT_QUOTES);
 }
 
-//投稿を取得する
-$posts = $db->query('SELECT m.name, m.picture, p.* FROM members m, posts p WHERE m.id=p.member_id ORDER BY p.created DESC');
-
-
-// if (!empty($_POST)) {
-// if ($_POST['message'] != '') {
-// $sql = sprintf(
-// 'INSERT INTO posts SET member_id=%d, message="%s", reply_post_id=%d, created=NOW()',
-// mysql_real_escape_string($member['id']),
-// mysql_real_escape_string($_POST['message']),
-// mysql_real_escape_string($_POST['reply_post_id'])
-// );
-// mysql_query($sql) or die(mysql_error());
-
-// header('Location: index.php');
-// exit();
-// }
-// }
-
-// $session = $_SESSION['time']+3600;
-// $time = $_SESSION['time']+3600;
-
 ?>
 
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 
-<form action="" method="post">
-    <dl>
-        <dt><?php echo htmlspecialchars($member['name'], ENT_QUOTES);?>さん、メッセージをどうぞ
-        </dt>
-        <dd>
-            <textarea name="message" cols="50" rows="5"></textarea>
-        </dd>
-    </dl>
-    <div>
-        <input type="submit" value="投稿する">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link rel="stylesheet" type="text/css" href="../style.css" />>
+    <title>ひとこと掲示板</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+
+<body>
+    <div id="wrap">
+        <div id="head">
+            <h1>会員登録</h1>
+        </div>
+        <div id="content">
+            <p>次のフォームに必要事項をご記入ください。</p>
+            <form action="" method="post">
+                <input type="hidden" name="action" value="submit">
+                <dl>
+                    <dt>ニックネーム</dt>
+                    <dd>
+                        <?php echo h($_SESSION['join']['name']); ?>
+                    </dd>
+                    <dt>メールアドレス</dt>
+                    <dd>
+                        <?php echo h($_SESSION['join']['email']); ?>
+                    </dd>
+                    <dt>パスワード</dt>
+                    <dd>【表示されません】</dd>
+                    <dt>写真など</dt>
+                    <dd>
+                        <img src="../member_picture/<?php echo h($_SESSION['join']['image']); ?>"
+                            width="100" height="100" alt="">
+                    </dd>
+                </dl>
+                <div><a href="index.php?action=rewrite">&laquo;&nbsp;書き直す</a> | <input type="submit" value="登録する"></div>
+            </form>
+        </div>
     </div>
-</form>
+</body>
 
-<?php
-foreach ($posts as $post):
-?>
-
-<div class="msg">
-    <img src="member_picture/<?php echo htmlspecialchars($post['picture'], ENT_QUOTES); ?>"
-        width="45" height="60"
-        alt="<?php echo htmlspecialchars($post['name'], ENT_QUOTES); ?>" />
-    <p><?php echo htmlspecialchars($post['message'], ENT_QUOTES); ?><span
-            class="name">(<?php echo htmlspecialchars($post['name'], ENT_QUOTES); ?>)
-        </span></p>
-    <p class="day"><?php echo htmlspecialchars($post['created'], ENT_QUOTES);?>
-    </p>
-</div>
-<?php
-endforeach;
+</html>

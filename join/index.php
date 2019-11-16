@@ -112,6 +112,7 @@ if ($_REQUEST['action'] == 'rewrite') {
                 <div><input type="submit" value="入力内容を確認する" /></div>
             </form>
         </div>
+
     </div>
 </body>
 
